@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marine Hyperspectral Classifier</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      background: #fcfcfc;
+      background-size: 300% 300%;
+      animation: gradientShift 8s ease infinite;
+      padding: 20px;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    h1 {
+      font-size: 2rem;
+      color: black;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    /* Full-width video at 50% viewport height */
+    .video-container {
+      position: relative;
+      height: 50vh;
+      overflow: hidden;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .video-container video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    
+    /* Upload Section */
+    .upload-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .upload-area {
+      border: 2px dashed #2a4d69;
+      border-radius: 8px;
+      padding: 40px 20px;
+      margin: 20px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #fafafa;
+    }
+    
+    .upload-area:hover {
+      background-color: #f8f9fa;
+      border-color: #28a745;
+    }
+    
+    .upload-area.dragover {
+      background-color: #e8f5e8;
+      border-color: #28a745;
+    }
+    
+    .upload-icon {
+      font-size: 48px;
+      color: #2a4d69;
+      margin-bottom: 15px;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .file-list {
+      margin-top: 20px;
+      text-align: left;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: #f8f9fa;
+      margin: 5px 0;
+      border-radius: 5px;
+      border-left: 4px solid #2a4d69;
+    }
+    
+    .remove-file {
+      color: #dc3545;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      padding: 0 5px;
+    }
+    
+    .remove-file:hover {
+      background: #dc3545;
+      color: white;
+      border-radius: 50%;
+    }
+    
+    .file-limits {
+      font-size: 14px;
+      color: #6c757d;
+      margin-top: 10px;
+    }
+    
+    .no-files {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+      padding: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    table th, table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    table th {
+      background-color: #2a4d69;
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    table tr:nth-child(even) {
+      background-color: #f4f7fa;
+    }
+    
+    img {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+    }
+    
+    /* Per-thumbnail progress */
+    .status-container {
+      width: 100px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 15px;
+      position: relative;
+      margin: 0 auto;
+    }
+    
+    .status-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #28a745;
+      transition: width 5s ease;
+    }
+    
+    .status-text {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #2a4d69;
+      text-align: center;
+    }
+    
+    button {
+      background: #28a745;
+      color: #fff;
+      padding: 12px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.3s ease, transform 0.2s ease;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    button:hover {
+      background-color: #1e364f;
+      transform: scale(1.05);
+    }
+    
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Loading Overlay */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255,255,255,0.95);
+      z-index: 9999;
+      text-align: center;
+      padding-top: 20%;
+    }
+    
+    #loading-overlay img {
+      width: 200px; 
+      height: auto;
+      margin-bottom: 15px;
+    }
+
+    #typing-text {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2a4d69;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 3px solid #2a4d69;
+      display: inline-block;
+      animation: blink 0.7s infinite;
+      margin-bottom:20px;
+    }
+
+    @keyframes blink {
+      0% { border-color: transparent; }
+      50% { border-color: #2a4d69; }
+      100% { border-color: transparent; }
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .upload-info {
+      background: #e7f3ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: left;
+    }
+    
+    .upload-info h4 {
+      color: #2a4d69;
+      margin-bottom: 10px;
+    }
+    
+    .upload-info ul {
+      margin-left: 20px;
+    }
+    
+    .upload-info li {
+      margin: 5px 0;
+      color: #495057;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="typing-text">Marine Hyperspectral Image Classification</h1>
+
+  <!-- Local Marine Life Video -->
+  <div class="video-container">
+    <video autoplay muted loop playsinline>
+      <source src="static/uploads/Life on the Coral Reef 4K.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Upload Section -->
+  <div class="upload-section">
+    <h2>Upload Hyperspectral Images</h2>
+    <p>Select .npy files for classification (Max: 10 files, 50MB total)</p>
+    
+    <form action="/predict" method="post" enctype="multipart/form-data" id="uploadForm">
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📁</div>
+        <h3>Click to select files or drag and drop</h3>
+        <p>Supported format: .npy files only</p>
+        <p class="file-limits">Maximum 10 files, 50MB total</p>
+        <input type="file" id="fileInput" name="files" class="file-input" multiple accept=".npy">
+      </div>
+      
+      <div class="file-list" id="fileList">
+        <div class="no-files">No files selected</div>
+      </div>
+      
+      <button type="submit" id="classifyBtn" disabled>Classify Uploaded Files</button>
+    </form>
+    
+    <div class="upload-info">
+      <h4>📋 Upload Instructions:</h4>
+      <ul>
+        <li>Click the upload area or drag & drop .npy files</li>
+        <li>Select multiple files using Ctrl+Click or Shift+Click</li>
+        <li>Remove files by clicking the × button</li>
+        <li>Supported: Hyperspectral .npy files only</li>
+        <li>Maximum: 10 files per upload (50MB total)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <img src="static/spinner.gif" alt="Loading...">
+    <h2>Analyzing images using Convolution Neural Network, please wait...</h2>
+    <p>This may take a few moments depending on the number and size of files</p>
+  </div>
+
+  <script>
+    let selectedFiles = [];
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileList = document.getElementById('fileList');
+    const classifyBtn = document.getElementById('classifyBtn');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Click on upload area to trigger file input
+    uploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    function handleFiles(files) {
+      const newFiles = Array.from(files).filter(file => 
+        file.name.endsWith('.npy') && 
+        !selectedFiles.some(f => f.name === file.name && f.size === file.size)
+      );
+
+      // Check limits
+      if (selectedFiles.length + newFiles.length > 10) {
+        alert('Maximum 10 files allowed. Please remove some files before adding more.');
+        return;
+      }
+
+      // Check total size
+      const totalSize = [...selectedFiles, ...newFiles].reduce((sum, file) => sum + file.size, 0);
+      if (totalSize > 50 * 1024 * 1024) {
+        alert('Total file size exceeds 50MB limit. Please remove some files.');
+        return;
+      }
+
+      selectedFiles = [...selectedFiles, ...newFiles];
+      updateFileList();
+      updateClassifyButton();
+    }
+
+    function updateFileList() {
+      fileList.innerHTML = '';
+      
+      if (selectedFiles.length === 0) {
+        fileList.innerHTML = '<div class="no-files">No files selected</div>';
+        return;
+      }
+
+      // Add file counter
+      const counter = document.createElement('div');
+      counter.style.cssText = 'font-size: 14px; color: #2a4d69; margin-bottom: 10px; font-weight: bold;';
+      counter.textContent = `Selected files: ${selectedFiles.length}/10`;
+      fileList.appendChild(counter);
+
+      // Calculate total size
+      const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+      const sizeText = document.createElement('div');
+      sizeText.style.cssText = 'font-size: 12px; color: #6c757d; margin-bottom: 10px;';
+      sizeText.textContent = `Total size: ${(totalSize / (1024 * 1024)).toFixed(2)} MB / 50 MB`;
+      fileList.appendChild(sizeText);
+
+      selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+          <div>
+            <strong>${file.name}</strong>
+            <div style="font-size: 12px; color: #6c757d;">
+              ${(file.size / (1024 * 1024)).toFixed(2)} MB
+            </div>
+          </div>
+          <span class="remove-file" onclick="removeFile(${index})" title="Remove file">×</span>
+        `;
+        fileList.appendChild(fileItem);
+      });
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      
+      // Update the file input
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      fileInput.files = dt.files;
+      
+      updateFileList();
+      updateClassifyButton();
+    }
+
+    function updateClassifyButton() {
+      classifyBtn.disabled = selectedFiles.length === 0;
+      
+      if (selectedFiles.length > 0) {
+        classifyBtn.textContent = `Classify ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`;
+      } else {
+        classifyBtn.textContent = 'Classify Uploaded Files';
+      }
+    }
+
+    // Show loading overlay when form is submitted
+    uploadForm.addEventListener('submit', function(e) {
+      if (selectedFiles.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one file to classify.');
+        return;
+      }
+      
+      // Validate file sizes before submitting
+      const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+      if (totalSize > 50 * 1024 * 1024) {
+        e.preventDefault();
+        alert('Total file size exceeds 50MB limit. Please remove some files.');
+        return;
+      }
+      
+      document.getElementById('loading-overlay').style.display = 'block';
+    });
+
+    // Typing effect
+    const text = "Marine Hyperspectral Image Classification";
+    const typingElement = document.getElementById("typing-text");
+    let index = 0;
+
+    function typeText() {
+      typingElement.textContent = "";
+      index = 0;
+      const typingInterval = setInterval(() => {
+        if (index < text.length) {
+          typingElement.textContent += text.charAt(index);
+          index++;
+        } else {
+          clearInterval(typingInterval);
+          setTimeout(typeText, 5000); // Restart after 5 seconds
+        }
+      }, 100);
+    }
+
+    // Start the typing effect on page load
+    typeText();
+
+    // Add some visual feedback for file operations
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize any additional functionality here
+      console.log('Marine Classifier ready for file uploads');
+    });
+  </script>
+
+</body>
+</html>
